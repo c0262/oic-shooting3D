@@ -22,6 +22,10 @@ CPlayer			gPlayer;
 #define			ENEMY_COUNT				(20)
 CEnemy			gEnemyArray[ENEMY_COUNT];
 
+#define			ENEMYSHOT_COUNT			(200)
+CEnemyShot		gShotArray[ENEMYSHOT_COUNT];
+CMeshContainer	gEnemyShotMesh;
+
 CStage			gStage;
 
 bool			gbDebug = false;
@@ -52,12 +56,22 @@ MofBool CGameApp::Initialize(void){
 
 	gStage.Load();
 
+	if (!gEnemyShotMesh.Load("eshot.mom"))
+	{
+		return false;
+	}
+
 	gPlayer.Initialize();
 
 	gStage.Initialize(&gStg1EnemyStart);
 	for(int i = 0; i < ENEMY_COUNT; i++)
 	{
 		gEnemyArray[i].Initialize();
+	}
+	for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+	{
+		gShotArray[i].Initialize();
+		gShotArray[i].SetMesh(&gEnemyShotMesh);
 	}
 	
 	return TRUE;
@@ -76,11 +90,37 @@ MofBool CGameApp::Update(void){
 	gPlayer.Update();
 	for (int i = 0; i < ENEMY_COUNT; i++)
 	{
-		gEnemyArray[i].Update();
+		gEnemyArray[i].SetTargetPos(gPlayer.GetPosition());
+		gEnemyArray[i].Update(gShotArray,ENEMYSHOT_COUNT);
+	}
+	for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+	{
+		gShotArray[i].Update();
+	}
+	for (int i = 0; i < ENEMY_COUNT; i++)
+	{
+		gPlayer.CollisionEnemy(gEnemyArray[i]);
+	}
+	for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+	{
+		gPlayer.CollisionEnemyShot(gShotArray[i]);
 	}
 	if (g_pInput->IsKeyPush(MOFKEY_F1))
 	{
 		gbDebug = ((gbDebug) ? false : true);
+	}
+	if (g_pInput->IsKeyPush(MOFKEY_RETURN) && gPlayer.IsDead())
+	{
+		gPlayer.Initialize();
+		gStage.Initialize(&gStg1EnemyStart);
+		for (int i = 0; i < ENEMY_COUNT; i++)
+		{
+			gEnemyArray[i].Initialize();
+		}
+		for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+		{
+			gShotArray[i].Initialize();
+		}
 	}
 	float posX = gPlayer.GetPosition().x * 0.4f;
 	CVector3 cpos = gCamera.GetViewPosition();
@@ -114,8 +154,21 @@ MofBool CGameApp::Render(void){
 	{
 		gEnemyArray[i].Render();
 	}
+	for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+	{
+		gShotArray[i].Render();
+	}
 	if (gbDebug)
 	{
+		gPlayer.RenderDebug();
+		for (int i = 0; ENEMY_COUNT; i++)
+		{
+			gEnemyArray[i].RenderDebug();
+		}
+		for (int i = 0; i < ENEMYSHOT_COUNT; i++)
+		{
+			gShotArray[i].RenderDebug();
+		}
 		CMatrix44 matWorld;
 		matWorld.Scaling(FIELD_HALF_X * 2, 1, FIELD_HALF_Z * 2);
 		CGraphicsUtilities::RenderPlane(matWorld, Vector4(1, 1, 1, 0.4f));
@@ -132,6 +185,12 @@ MofBool CGameApp::Render(void){
 			gEnemyArray[i].RenderDebugText(i);
 		}
 	}
+	
+	if (gPlayer.IsDead())
+	{
+		CGraphicsUtilities::RenderString(240, 350, MOF_COLOR_RED,
+			"ゲームオーバー  :  Enter キーでもう一度最初から");
+	}
 
 	// 描画の終了
 	g_pGraphics->RenderEnd();
@@ -147,5 +206,6 @@ MofBool CGameApp::Render(void){
 MofBool CGameApp::Release(void){
 	gPlayer.Release();
 	gStage.Release();
+	gEnemyShotMesh.Release();
 	return TRUE;
 }
