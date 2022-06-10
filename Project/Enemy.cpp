@@ -65,7 +65,7 @@ void CEnemy::Start(const Vector3& p){
  * çXêV
  *
  */
-void CEnemy::Update(){
+void CEnemy::Update(CEnemyShot* shot,int smax){
 	if (!GetShow())
 	{
 		return;
