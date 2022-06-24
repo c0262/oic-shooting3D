@@ -5,26 +5,30 @@
 
 // スクロール速度
 #define		SCROLL_SPEED	(1.0f)
-typedef struct tag_ENEMYSTRAT {
-	int						Count;
-	float*					PosX;
-	float*					Scroll;
-}ENEMYSTRAT;
+
+// 敵の出現情報構造体
+typedef struct tag_ENEMYSTART{
+	int					Count;
+	float*				PosX;
+	float*				Scroll;
+}ENEMYSTART;
 
 class CStage{
 private:
 	CSprite3D			m_BG;
 	float				m_Scroll;
-	ENEMYSTRAT*			m_pEnemyStart;
+
+	ENEMYSTART*			m_pEnemyStart;
 	CMeshContainer		m_EnemyMesh;
 	int					m_EnemyNo;
 public:
 	CStage();
 	~CStage();
 	bool Load();
-	void Initialize(ENEMYSTRAT* pSt);
+	void Initialize(ENEMYSTART *pSt);
 	void Update(CEnemy* ene,int ecnt);
 	void Render();
 	void RenderDebugText();
+	bool IsAllEnemy(){ return m_EnemyNo >= m_pEnemyStart->Count; }
 	void Release();
 };

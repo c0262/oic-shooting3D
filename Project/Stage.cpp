@@ -39,7 +39,7 @@ bool CStage::Load(){
  * èâä˙âª
  *
  */
-void CStage::Initialize(ENEMYSTRAT *pSt){
+void CStage::Initialize(ENEMYSTRAT *pSt) {
 	m_BG.m_Angle.x = MOF_MATH_HALFPI;
 	m_BG.m_Angle.y = MOF_MATH_HALFPI;
 	m_BG.m_Scale = Vector3(200, 200, 200);

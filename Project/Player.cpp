@@ -4,14 +4,13 @@
  * コンストラクタ
  */
 CPlayer::CPlayer() :
-	m_Mesh(),
-	m_Pos(0.0f, 0.0f, 0.0f),
-	m_RotZ(0.0f),
-	m_bDead(false),
-	m_ShotMesh(),
-	m_ShotArray(),
-	m_Shotwait() {
-
+m_Mesh(),
+m_Pos(0.0f,0.0f,0.0f),
+m_RotZ(0.0f),
+m_bDead(false),
+m_ShotMesh(),
+m_ShotArray(),
+m_ShotWait(){
 }
 
 /**
@@ -25,15 +24,16 @@ CPlayer::~CPlayer(){
  */
 bool CPlayer::Load(void){
 	// メッシュの読み込み
-	if (!m_Mesh.Load("Player.mom"))
+	if(!m_Mesh.Load("player.mom"))
 	{
 		return false;
 	}
-	if (!m_ShotMesh.Load("pshot.mom"))
+	// 弾のメッシュ
+	if(!m_ShotMesh.Load("pshot.mom"))
 	{
 		return false;
 	}
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
 	{
 		m_ShotArray[i].SetMesh(&m_ShotMesh);
 	}
@@ -44,10 +44,10 @@ bool CPlayer::Load(void){
  * 初期化
  */
 void CPlayer::Initialize(void){
-	m_Pos = Vector3(0.0f, 0.0f, -FIELD_HALF_Z + 2.0f);
+	m_Pos = Vector3(0.0f,0.0f,-FIELD_HALF_Z+2.0f);
 	m_RotZ = 0;
 	m_bDead = false;
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
 	{
 		m_ShotArray[i].Initialize();
 	}
@@ -57,53 +57,60 @@ void CPlayer::Initialize(void){
  * 更新
  */
 void CPlayer::Update(void){
-	if (m_bDead)
+	if(m_bDead)
 	{
 		return;
 	}
+	// 回転方向
 	float Roll = 0;
-	if (g_pInput->IsKeyHold(MOFKEY_LEFT))
+	// キーボードでの移動
+	if(g_pInput->IsKeyHold(MOFKEY_LEFT))
 	{
-		m_Pos.x = max(m_Pos.x - PLAYER_SPEED, -FIELD_HALF_X);
+		m_Pos.x = max(m_Pos.x - PLAYER_SPEED,-FIELD_HALF_X);
 		Roll -= MOF_MATH_PI;
 	}
-	if (g_pInput->IsKeyHold(MOFKEY_RIGHT))
+	if(g_pInput->IsKeyHold(MOFKEY_RIGHT))
 	{
-		m_Pos.x = min(m_Pos.x + PLAYER_SPEED, FIELD_HALF_X);
+		m_Pos.x = min(m_Pos.x + PLAYER_SPEED,FIELD_HALF_X);
 		Roll += MOF_MATH_PI;
 	}
-	if (g_pInput->IsKeyHold(MOFKEY_UP))
+	if(g_pInput->IsKeyHold(MOFKEY_UP))
 	{
-		m_Pos.z = min(m_Pos.z + PLAYER_SPEED, FIELD_HALF_Z);
+		m_Pos.z = min(m_Pos.z + PLAYER_SPEED,FIELD_HALF_Z);
 	}
-	if (g_pInput->IsKeyHold(MOFKEY_DOWN))
+	if(g_pInput->IsKeyHold(MOFKEY_DOWN))
 	{
-		m_Pos.z = max(m_Pos.z - PLAYER_SPEED, -FIELD_HALF_Z);
+		m_Pos.z = max(m_Pos.z - PLAYER_SPEED,-FIELD_HALF_Z);
 	}
+	// 回転
 	float RotSpeed = MOF_ToRadian(10);
-	if (Roll == 0)
+	if(Roll == 0)
 	{
-		RotSpeed = min(abs(m_RotZ) * 0.1f, RotSpeed);
+		RotSpeed = min(abs(m_RotZ)*0.1f,RotSpeed);
 	}
-	if (abs(m_RotZ) <= RotSpeed || signbit(m_RotZ) != signbit(Roll))
+	if(abs(m_RotZ) <= RotSpeed || signbit(m_RotZ) != signbit(Roll))
 	{
 		m_RotZ += Roll;
 	}
-	m_RotZ -= copysignf(min(RotSpeed, abs(m_RotZ)),m_RotZ);
-
-	if (m_Shotwait <= 0)
+	m_RotZ -= copysignf(min(RotSpeed,abs(m_RotZ)),m_RotZ);
+	
+	// 弾の発射
+	if(m_ShotWait <= 0)
 	{
-		if (g_pInput->IsKeyHold(MOFKEY_SPACE))
+		if(g_pInput->IsKeyHold(MOFKEY_SPACE))
 		{
-			for (int cnt = 0; cnt < 2; cnt++)
+			for(int cnt = 0; cnt < 2; cnt++)
 			{
-				for (int i = 0; i < PLAYERSHOT_COUNT; i++)
+				for(int i = 0; i < PLAYERSHOT_COUNT; i++)
 				{
-					if (m_ShotArray[i].GetShow()) { continue; }
+					if(m_ShotArray[i].GetShow())
+					{
+						continue;
+					}
 					CVector3 ShotPos(0.4f * (cnt * 2 - 1), 0, 0);
 					ShotPos.RotationZ(m_RotZ);
 					ShotPos += m_Pos;
-					m_Shotwait = PLAYERSHOT_WAIT;
+					m_ShotWait = PLAYERSHOT_WAIT;
 					m_ShotArray[i].Fire(ShotPos);
 					break;
 				}
@@ -112,11 +119,108 @@ void CPlayer::Update(void){
 	}
 	else
 	{
-		m_Shotwait--;
+		m_ShotWait--;
 	}
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
+	// 弾の更新
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
 	{
 		m_ShotArray[i].Update();
+	}
+}
+
+/**
+ * 敵との当たり判定
+ * 引数の敵に対して当たり判定を実行する。
+ *
+ * 引数
+ * [in]			ene				判定を行う敵
+ */
+void CPlayer::CollisionEnemy(CEnemy& ene){
+	if(!ene.GetShow())
+	{
+		return;
+	}
+	CSphere ps = GetSphere();
+	CSphere es = ene.GetSphere();
+	if(ps.CollisionSphere(es))
+	{
+		m_bDead = true;
+	}
+	// 弾との判定
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
+	{
+		if(!m_ShotArray[i].GetShow())
+		{
+			continue;
+		}
+		CSphere ss = m_ShotArray[i].GetSphere();
+		if(ss.CollisionSphere(es))
+		{
+			ene.Damage(1);
+			m_ShotArray[i].SetShow(false);
+			break;
+		}
+	}
+}
+
+/**
+ * 敵弾との当たり判定
+ * 引数の敵弾に対して当たり判定を実行する。
+ *
+ * 引数
+ * [in]			shot			判定を行う敵弾
+ */
+void CPlayer::CollisionEnemyShot(CEnemyShot& shot){
+	CSphere ps = GetSphere();
+	if(!shot.GetShow())
+	{
+		return;
+	}
+	CSphere ss = shot.GetSphere();
+	if(ss.CollisionSphere(ps))
+	{
+		m_bDead = true;
+		shot.SetShow(false);
+	}
+}
+
+/**
+ * 当たり判定
+ * 引数のボスに対して当たり判定を実行する。
+ *
+ * 引数
+ * [in]			boss			判定を行うボス
+ */
+void CPlayer::CollisionBoss(CBoss& boss){
+	if(!boss.GetShow())
+	{
+		return;
+	}
+	CSphere ps = GetSphere();
+	CSphere bs = boss.GetSphere();
+	if(ps.CollisionSphere(bs))
+	{
+		m_bDead = true;
+	}
+	// 弾との判定
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
+	{
+		if(!m_ShotArray[i].GetShow())
+		{
+			continue;
+		}
+		CSphere ss = m_ShotArray[i].GetSphere();
+		if(ss.CollisionSphere(bs))
+		{
+			boss.Damage(1);
+			m_ShotArray[i].SetShow(false);
+			break;
+		}
+	}
+	// パーツとの判定
+	for(int i = 0; i < BOSS_PARTS_MAX; i++)
+	{
+		CollisionEnemy(boss.GetParts(i));
 	}
 }
 
@@ -124,17 +228,33 @@ void CPlayer::Update(void){
  * 描画
  */
 void CPlayer::Render(void){
-	if (m_bDead)
+	if(m_bDead)
 	{
 		return;
 	}
+	// ワールド行列作成
 	CMatrix44 matWorld;
 	matWorld.RotationZ(m_RotZ);
 	matWorld.SetTranslation(m_Pos);
+	// メッシュの描画
 	m_Mesh.Render(matWorld);
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
+	// 弾の描画
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
 	{
 		m_ShotArray[i].Render();
+	}
+}
+
+/**
+ * デバッグ描画
+ */
+void CPlayer::RenderDebug(void){
+	// 当たり判定の表示
+	CGraphicsUtilities::RenderSphere(GetSphere(),Vector4(0,1,0,0.3f));
+	// 弾の描画
+	for(int i = 0; i < PLAYERSHOT_COUNT; i++)
+	{
+		m_ShotArray[i].RenderDebug();
 	}
 }
 
@@ -153,53 +273,4 @@ void CPlayer::RenderDebugText(void){
 void CPlayer::Release(void){
 	m_Mesh.Release();
 	m_ShotMesh.Release();
-}
-
-void CPlayer::RenderDebug(void) {
-	CGraphicsUtilities::RenderSphere(GetSphere(), Vector4(0, 1, 0, 0.3f));
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
-	{
-		m_ShotArray[i].RenderDebug();
-	}
-}
-
-void CPlayer::CollisionEnemy(CEnemy& ene) {
-	if (!ene.GetShow())
-	{
-		return;
-	}
-	CSphere ps = GetSphere();
-	CSphere es = ene.GetSphere();
-	if (ps.CollisionSphere(es))
-	{
-		m_bDead = true;
-	}
-	for (int i = 0; i < PLAYERSHOT_COUNT; i++)
-	{
-		if (!m_ShotArray[i].GetShow())
-		{
-			continue;
-		}
-		CSphere ss = m_ShotArray[i].GetSphere();
-		if (ss.CollisionSphere(es))
-		{
-			ene.Damage(1);
-			m_ShotArray[i].SetShow(false);
-			break;
-		}
-	}
-}
-
-void CPlayer::CollisionEnemyShot(CEnemyShot& shot) {
-	CSphere ps = GetSphere();
-	if (!shot.GetShow())
-	{
-		return;
-	}
-	CSphere ss = shot.GetSphere();
-	if (ss.CollisionSphere(ps))
-	{
-		m_bDead = true;
-		shot.SetShow(false);
-	}
 }
